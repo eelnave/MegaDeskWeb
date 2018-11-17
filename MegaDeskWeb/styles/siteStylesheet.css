@@ -1,0 +1,16 @@
+﻿body {
+}
+
+h1{
+    text-align: center;
+}
+
+legend{
+    font-weight: bold;
+    font-size: 28px;
+}
+
+fieldset{
+    width: 50%;
+    margin: auto;
+}

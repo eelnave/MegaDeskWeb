@@ -1,5 +1,18 @@
 ﻿@{
-    Layout = null;
+    Layout = "~/Shared/_Layout.cshtml";
+
+    var db = WebMatrix.Data.Database.Open("MegaDesk");
+    var selectCommand = "SELECT * FROM DeskQuotes dq JOIN Desk d ON dq.desk_id = d.desk_id";
+    var searchTerm = "";
+
+    if (!Request.QueryString["searchMaterial"].IsEmpty())
+    {
+        selectCommand = "SELECT * FROM DeskQuotes dq JOIN Desk d ON dq.desk_id = d.desk_id WHERE material = @0";
+        searchTerm = Request.QueryString["searchMaterial"];
+    }
+
+    var resultData = db.Query(selectCommand);
+    var grid = new WebGrid(source: resultData, defaultSort: "quote_date", rowsPerPage: 10);
 }
 
 <!DOCTYPE html>
@@ -11,7 +24,40 @@
 </head>
 <body>
     <div>
-    
+        @grid.GetHtml(
+    tableStyle: "grid",
+    headerStyle: "gridHead",
+    alternatingRowStyle: "alt",
+    columns: grid.Columns(
+            grid.Column(format: @<a href="~/EditQuote?quoteId=@item.quote_id&deskId=@item.desk_id">Edit</a>),
+                 grid.Column(
+                     columnName: "customer_name",
+                     header: "Customer Name"
+                     ),
+                 grid.Column(
+                     columnName: "width",
+                     header: "Width"
+                     ),
+                 grid.Column(
+                     columnName: "depth",
+                     header: "Depth"
+                     ),
+                 grid.Column(
+                     columnName: "number_of_drawers",
+                     header: "Number of Drawers"
+                     ),
+                 grid.Column(
+                     columnName: "material",
+                     header: "Material"
+                     ),
+                 grid.Column(
+                     columnName: "quote_date",
+                     header: "Quote Date"
+                     ),
+                 grid.Column(
+                     columnName: "quote_amount",
+                     header: "Quote"
+                     )))
     </div>
 </body>
 </html>
