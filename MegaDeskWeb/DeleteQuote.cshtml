@@ -4,14 +4,48 @@
 
 <!DOCTYPE html>
 
+<!DOCTYPE html>
+
 <html>
 <head>
     <meta name="viewport" content="width=device-width" />
     <title></title>
 </head>
 <body>
-    <div>
-    
-    </div>
+    <fieldset>
+        <legend>Create a Desk</legend>
+        <form method="post">
+            <p>
+                <label for="width">Width: </label>
+                <input type="number" max="96" min="24" name="width" value="@Request.Form["width"]" />
+            </p>
+            <p>
+                <label for="depth">Depth: </label>
+                <input type="number" max="48" min="12" name="depth" value="@Request.Form["depth"]" />
+            </p>
+            <p>
+                <label for="drawers">Number of Drawers: </label>
+                <input type="number" max="7" min="0" name="drawers" value="@Request.Form["number_of_drawers"]" />
+            </p>
+            <p>
+                <select name="material">
+                    <option value="laminate">Laminate</option>
+                    <option value="pine">Pine</option>
+                    <option value="oak">Oak</option>
+                    <option value="rosewood">Rosewood</option>
+                    <option value="veneer">Veneer</option>
+                </select>
+            </p>
+            <p>
+                <label for="customer_name">Customer Name: </label>
+                <input type="text" name="customer_name" value=@Request.Form["customer_name"] />
+            </p>
+            <p>
+                <label for="date">Date: </label>
+                <input type="text" name="date" value="@Date" readonly />
+            </p>
+            <input type="submit" name="checkQuoteButton" value="Review and Submit" />
+        </form>
+    </fieldset>
 </body>
 </html>

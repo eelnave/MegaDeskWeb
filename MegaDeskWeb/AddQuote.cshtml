@@ -1,8 +1,70 @@
 ﻿@{
+
     Layout = "~/Shared/_Layout.cshtml";
 
+    var width = "";
+    var depth = "";
+    var number_of_drawers = "";
+    var customer_name = "";
     var Date = DateTime.Now;
-    var db = WebMatrix.Data.Database.Open("MegaDesk");
+    IEnumerable<SelectListItem> surfaceMaterialItems;
+    IEnumerable<SelectListItem> rushShippingItems;
+
+    using (var db = WebMatrix.Data.Database.Open("MegaDesk"))
+    {
+        var surfaceMaterialsCommand = "SELECT * FROM Material ORDER BY material_type";
+        var surfaceMaterials = db.Query(surfaceMaterialsCommand);
+
+        surfaceMaterialItems = surfaceMaterials.Select(m => new SelectListItem
+
+        {
+            Value = m.material_id.ToString(),
+            Text = m.material_type,
+            Selected = m.material_id.ToString() == Request.Form["surfaceMaterial"] ? true : false
+        });
+
+        var rushShippingCommand = "SELECT * FROM Rush_Prices";
+        var rushShipping = db.Query(rushShippingCommand);
+
+        rushShippingItems = rushShipping.Select(m => new SelectListItem
+        {
+            Value = m.price_id.ToString(),
+            Text = m.rush_days,
+            Selected = m.price_id.ToString() == Request.Form["rush_order"] ? true : false
+        });
+    }
+
+    if (IsPost)
+    {
+        Validation.RequireField("width", "Width field is required");
+        Validation.RequireField("depth", "Depth field is required");
+        Validation.RequireField("number_of_drawers", "Drawer field is required");
+        Validation.RequireField("surfaceMaterial", "Material field is required");
+        Validation.RequireField("customer_name", "Name field is required");
+        Validation.RequireField("rush_days", "Rush order field is required");
+
+        width = Request.Form["width"];
+        depth = Request.Form["depth"];
+        number_of_drawers = Request.Form["number_of_drawers"];
+        customer_name = Request.Form["customer_name"];
+
+        if (Validation.IsValid())
+        {
+            using (var db = WebMatrix.Data.Database.Open("MegaDesk"))
+            {
+                MegaDeskWeb.Desk desk = new MegaDeskWeb.Desk(int.Parse(width), int.Parse(depth), int.Parse(number_of_drawers), Request.Form["surfaceMaterial"].ToString());
+                var insertDeskCommand = "INSERT INTO Desk (width, depth, number_of_drawers, material_id ) VALUES (@0, @1, @2, @3) ";
+                db.Execute(insertDeskCommand, desk.Width, desk.Depth, desk.Drawers, Request.Form["surfaceMaterial"]);
+                var deskIdSelect = "SELECT CAST(@@IDENTITY as INT)";
+                var deskId = db.QueryValue(deskIdSelect);
+                MegaDeskWeb.DeskQuote deskQuote = new MegaDeskWeb.DeskQuote(desk, int.Parse(Request.Form["rush_days"]), customer_name, Date);
+                var insertDeskQuoteCommand = "INSERT INTO DeskQuotes (desk_id, customer_name, quote_date, quote_amount, rush_id) VALUES (@0, @1, @2, @3, @4)";
+                db.Execute(insertDeskQuoteCommand, int.Parse(deskId.ToString()), deskQuote.Name, deskQuote.QuoteDate, deskQuote.QuoteCost, Request.Form["rush_days"].ToString());
+
+                Response.Redirect("~/Homepage");
+            }
+        }
+    }
 }
 
 <!DOCTYPE html>
@@ -25,16 +87,20 @@
                 <input type="number" max="48" min="12" name="depth" value="@Request.Form["depth"]" />
             </p>
             <p>
-                <label for="drawers">Number of Drawers: </label>
-                <input type="number" max="7" min="0" name="drawers" value="@Request.Form["number_of_drawers"]" />
+                <label for="number_of_drawers">Number of Drawers: </label>
+                <input type="number" max="7" min="0" name="number_of_drawers" value="@Request.Form["number_of_drawers"]" />
             </p>
             <p>
-                <label for="material">Surface Material: </label>
-                @Html.DropDownList("material", Enum.GetValues(typeof(MegaDeskWeb.SurfaceMaterial)).Cast<MegaDeskWeb.SurfaceMaterial>().Select(x => new SelectListItem { Text = x.ToString(), Value = ((int)x).ToString() }).ToList())
+                <label for="surfaceMaterial">Surface Material:</label>
+                @Html.DropDownList("surfaceMaterial", surfaceMaterialItems, Request.Form["surfaceMaterial"])
             </p>
             <p>
-                <label for="customer_name">Name: </label>
+                <label for="customer_name">Customer Name: </label>
                 <input type="text" name="customer_name" value=@Request.Form["customer_name"] />
+            </p>
+            <p>
+                <label for="rush_days">Rush Order: </label>
+                @Html.DropDownList("rush_days", rushShippingItems, Request.Form["rush_days"])
             </p>
             <p>
                 <label for="date">Date: </label>

@@ -7,28 +7,15 @@ using System.Threading.Tasks;
 
 namespace MegaDeskWeb
 {
-    public enum SurfaceMaterial
+    public class Desk
     {
-        Oak,
-        Rosewood,
-        Veneer,
-        Pine,
-        Laminate
-    }
-
-    public struct Desk
-    {
-        public Guid DeskId { get; set; }
         public int Width { get; set; }
         public int Depth { get; set; }
         public int Drawers { get; set; }
-        public SurfaceMaterial Material { get; set; }
+        public string Material { get; set; }
 
-        public Desk(int width, int depth, int drawers, SurfaceMaterial material)
+        public Desk(int width, int depth, int drawers, string material)
         {
-            Guid id = Guid.NewGuid();
-
-            DeskId = id;
             Width = width;
             Depth = depth;
             Drawers = drawers;
@@ -37,7 +24,7 @@ namespace MegaDeskWeb
 
         public string CsvString()
         {
-            return $"{DeskId},{Width},{Depth},{Drawers},{Material},";
+            return $"{Width},{Depth},{Drawers},{Material},";
         }
     }
 }

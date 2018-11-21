@@ -9,10 +9,10 @@ namespace MegaDeskWeb
 {
     public class DeskQuote
     {
-        private Desk Desk { get; set; }
-        private static int RushDays { get; set; }
-        private string Name { get; set; }
-        private DateTime QuoteDate { get; set; }
+        public Desk Desk { get; set; }
+        public static int RushDays { get; set; }
+        public string Name { get; set; }
+        public DateTime QuoteDate { get; set; }
         public decimal QuoteCost { get; }
 
         public DeskQuote(Desk desk, int rushDays, string name, DateTime quoteDate)
@@ -56,19 +56,19 @@ namespace MegaDeskWeb
                 return drawers * 50;
             }
 
-            decimal SurfaceMaterialCost(SurfaceMaterial material)
+            decimal SurfaceMaterialCost(string material)
             {
                 switch (material)
                 {
-                    case SurfaceMaterial.Laminate:
+                    case "Laminate":
                         return 100M;
-                    case SurfaceMaterial.Oak:
+                    case "Oak":
                         return 200M;
-                    case SurfaceMaterial.Pine:
+                    case "Pine":
                         return 50M;
-                    case SurfaceMaterial.Rosewood:
+                    case "Rosewood":
                         return 300M;
-                    case SurfaceMaterial.Veneer:
+                    case "Veneer":
                         return 125M;
                     default:
                         return 0M;
