@@ -1,11 +1,93 @@
 ﻿@{
-    Layout = null;
+
+    Layout = "~/Shared/_Layout.cshtml";
+
+    var width = "";
+    var depth = "";
+    var number_of_drawers = "";
+    var customer_name = "";
+    var material = "";
+    var rush_days = "";
+    var Date = DateTime.Now;
+    IEnumerable<SelectListItem> surfaceMaterialItems;
+    IEnumerable<SelectListItem> rushShippingItems;
+
+    using (var db = WebMatrix.Data.Database.Open("MegaDesk"))
+    {
+        var surfaceMaterialsCommand = "SELECT * FROM Material ORDER BY material_type";
+        var surfaceMaterials = db.Query(surfaceMaterialsCommand);
+
+        surfaceMaterialItems = surfaceMaterials.Select(m => new SelectListItem
+
+        {
+            Value = m.material_id.ToString(),
+            Text = m.material_type,
+            Selected = m.material_id.ToString() == Request.QueryString["surfaceMaterial"] ? true : false
+        });
+
+        var rushShippingCommand = "SELECT * FROM Rush_Prices";
+        var rushShipping = db.Query(rushShippingCommand);
+
+        rushShippingItems = rushShipping.Select(m => new SelectListItem
+        {
+            Value = m.price_id.ToString(),
+            Text = m.rush_days,
+            Selected = m.price_id.ToString() == Request.QueryString["rush_order"] ? true : false
+        });
+    }
+
+    if (!IsPost)
+    {
+        if ((!Request.QueryString["quoteId"].IsEmpty() && Request.QueryString["quoteId"].IsInt()) && (!Request.QueryString["deskId"].IsEmpty() && Request.QueryString["deskId"].IsInt()))
+        {
+            var quote_id = Request.QueryString["quoteId"];
+            var desk_id = Request.QueryString["deskId"];
+            var selectCommand = "SELECT * " +
+                            "    FROM DeskQuotes dq " +
+                            "    JOIN Desk d " +
+                            "    ON dq.desk_id = d.desk_id " +
+                            "    JOIN Material m " +
+                            "    ON m.material_id = d.material_id " +
+                            "    JOIN Rush_Prices rp" +
+                            "    ON rp.price_id = dq.rush_id" +
+                            "    WHERE d.desk_id = @0" +
+                            "    AND dq.quote_id = @1";
+            using (var db = WebMatrix.Data.Database.Open("MegaDesk"))
+            {
+                var result = db.QuerySingle(selectCommand, desk_id, quote_id);
+                if (result != null)
+                {
+                    width = (result.width).ToString();
+                    depth = (result.depth).ToString();
+                    number_of_drawers = (result.number_of_drawers).ToString();
+                    customer_name = result.customer_name;
+                    material = result.material_type;
+                    rush_days = result.rush_days;
+                }
+            }
+        }
+    }
+
+    if (IsPost)
+    {
+        if (Validation.IsValid())
+        {
+            using (var db = WebMatrix.Data.Database.Open("MegaDesk"))
+            {
+                var deskId = Request.QueryString["deskId"];
+                var deskQuoteId = Request.QueryString["quoteId"];
+                var deleteQuoteStatement = "DELETE FROM DeskQuotes WHERE quote_id = @0";
+                db.Execute(deleteQuoteStatement, deskQuoteId);
+                var deleteDeskStatement = "DELETE FROM Desk WHERE desk_id = @0";
+                db.Execute(deleteDeskStatement, deskId);
+
+                Response.Redirect("~/Homepage");
+            }
+        }
+    }
 }
 
 <!DOCTYPE html>
-
-<!DOCTYPE html>
-
 <html>
 <head>
     <meta name="viewport" content="width=device-width" />
@@ -13,32 +95,31 @@
 </head>
 <body>
     <fieldset>
-        <legend>Create a Desk</legend>
+        <legend>Confirm Desk Deletion</legend>
         <form method="post">
             <p>
                 <label for="width">Width: </label>
-                <input type="number" max="96" min="24" name="width" value="@Request.Form["width"]" />
+                <input type="number" max="96" min="24" name="width" value="@width" readonly />
             </p>
             <p>
                 <label for="depth">Depth: </label>
-                <input type="number" max="48" min="12" name="depth" value="@Request.Form["depth"]" />
+                <input type="number" max="48" min="12" name="depth" value="@depth" readonly />
             </p>
             <p>
-                <label for="drawers">Number of Drawers: </label>
-                <input type="number" max="7" min="0" name="drawers" value="@Request.Form["number_of_drawers"]" />
+                <label for="number_of_drawers">Number of Drawers: </label>
+                <input type="number" max="7" min="0" name="number_of_drawers" value="@number_of_drawers" readonly />
             </p>
             <p>
-                <select name="material">
-                    <option value="laminate">Laminate</option>
-                    <option value="pine">Pine</option>
-                    <option value="oak">Oak</option>
-                    <option value="rosewood">Rosewood</option>
-                    <option value="veneer">Veneer</option>
-                </select>
+                <label for="surfaceMaterial">Surface Material:</label>
+                @Html.DropDownList("surfaceMaterial", surfaceMaterialItems, htmlAttributes: new { @disabled = "true"})
             </p>
             <p>
                 <label for="customer_name">Customer Name: </label>
-                <input type="text" name="customer_name" value=@Request.Form["customer_name"] />
+                <input type="text" name="customer_name" value=@customer_name readonly />
+            </p>
+            <p>
+                <label for="rush_days">Rush Order: </label>
+                @Html.DropDownList("rush_days", rushShippingItems, htmlAttributes: new { @disabled = "true" })
             </p>
             <p>
                 <label for="date">Date: </label>

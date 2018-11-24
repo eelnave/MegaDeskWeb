@@ -1,17 +1,146 @@
 ﻿@{
-    Layout = null;
+
+    Layout = "~/Shared/_Layout.cshtml";
+
+    var width = "";
+    var depth = "";
+    var number_of_drawers = "";
+    var customer_name = "";
+    var material = "";
+    var rush_days = "";
+    var Date = DateTime.Now;
+    IEnumerable<SelectListItem> surfaceMaterialItems;
+    IEnumerable<SelectListItem> rushShippingItems;
+
+    using (var db = WebMatrix.Data.Database.Open("MegaDesk"))
+    {
+        var surfaceMaterialsCommand = "SELECT * FROM Material ORDER BY material_type";
+        var surfaceMaterials = db.Query(surfaceMaterialsCommand);
+
+        surfaceMaterialItems = surfaceMaterials.Select(m => new SelectListItem
+
+        {
+            Value = m.material_id.ToString(),
+            Text = m.material_type,
+            Selected = m.material_id.ToString() == Request.QueryString["surfaceMaterial"] ? true : false
+        });
+
+        var rushShippingCommand = "SELECT * FROM Rush_Prices";
+        var rushShipping = db.Query(rushShippingCommand);
+
+        rushShippingItems = rushShipping.Select(m => new SelectListItem
+        {
+            Value = m.price_id.ToString(),
+            Text = m.rush_days,
+            Selected = m.price_id.ToString() == Request.QueryString["rush_order"] ? true : false
+        });
+    }
+
+    if (!IsPost)
+    {
+        if ((!Request.QueryString["quoteId"].IsEmpty() && Request.QueryString["quoteId"].IsInt()) && (!Request.QueryString["deskId"].IsEmpty() && Request.QueryString["deskId"].IsInt()))
+        {
+            var quote_id = Request.QueryString["quoteId"];
+            var desk_id = Request.QueryString["deskId"];
+            var selectCommand = "SELECT * " +
+                            "    FROM DeskQuotes dq " +
+                            "    JOIN Desk d " +
+                            "    ON dq.desk_id = d.desk_id " +
+                            "    JOIN Material m " +
+                            "    ON m.material_id = d.material_id " +
+                            "    JOIN Rush_Prices rp" +
+                            "    ON rp.price_id = dq.rush_id" +
+                            "    WHERE d.desk_id = @0" +
+                            "    AND dq.quote_id = @1";
+            using (var db = WebMatrix.Data.Database.Open("MegaDesk"))
+            {
+                var result = db.QuerySingle(selectCommand, desk_id, quote_id);
+                if(result != null)
+                {
+                    width = (result.width).ToString();
+                    depth = (result.depth).ToString();
+                    number_of_drawers = (result.number_of_drawers).ToString();
+                    customer_name = result.customer_name;
+                    material = result.material_type;
+                    rush_days = result.rush_days;
+                }
+            }
+        }
+    }
+
+    if (IsPost)
+    {
+        Validation.RequireField("width", "Width field is required");
+        Validation.RequireField("depth", "Depth field is required");
+        Validation.RequireField("number_of_drawers", "Drawer field is required");
+        Validation.RequireField("surfaceMaterial", "Material field is required");
+        Validation.RequireField("customer_name", "Name field is required");
+        Validation.RequireField("rush_days", "Rush order field is required");
+
+        width = Request.Form["width"];
+        depth = Request.Form["depth"];
+        number_of_drawers = Request.Form["number_of_drawers"];
+        customer_name = Request.Form["customer_name"];
+
+        if (Validation.IsValid())
+        {
+            using (var db = WebMatrix.Data.Database.Open("MegaDesk"))
+            {
+                var deskId = Request.QueryString["deskId"];
+                var deskQuoteId = Request.QueryString["quoteId"];
+                MegaDeskWeb.Desk desk = new MegaDeskWeb.Desk(int.Parse(width), int.Parse(depth), int.Parse(number_of_drawers), Request.Form["surfaceMaterial"].ToString());
+                var insertDeskCommand = "UPDATE Desk SET width = @0, depth = @1, number_of_drawers = @2, material_id = @3 WHERE desk_id = @4";
+                db.Execute(insertDeskCommand, desk.Width, desk.Depth, desk.Drawers, Request.Form["surfaceMaterial"].ToString(), deskId);
+                MegaDeskWeb.DeskQuote deskQuote = new MegaDeskWeb.DeskQuote(desk, int.Parse(Request.Form["rush_days"]), customer_name, Date);
+                var insertDeskQuoteCommand = "UPDATE DeskQuotes SET customer_name = @0, quote_date = @1, quote_amount = @2, rush_id = @3 WHERE quote_id = @4";
+                db.Execute(insertDeskQuoteCommand, deskQuote.Name, deskQuote.QuoteDate, deskQuote.QuoteCost, Request.Form["rush_days"].ToString(), deskQuoteId);
+
+                Response.Redirect("~/Homepage");
+            }
+        }
+    }
 }
 
 <!DOCTYPE html>
-
 <html>
 <head>
     <meta name="viewport" content="width=device-width" />
     <title></title>
 </head>
 <body>
-    <div>
-    
-    </div>
+    <fieldset>
+        <legend>Edit Desk</legend>
+        <form method="post">
+            <p>
+                <label for="width">Width: </label>
+                <input type="number" max="96" min="24" name="width" value="@width" />
+            </p>
+            <p>
+                <label for="depth">Depth: </label>
+                <input type="number" max="48" min="12" name="depth" value="@depth" />
+            </p>
+            <p>
+                <label for="number_of_drawers">Number of Drawers: </label>
+                <input type="number" max="7" min="0" name="number_of_drawers" value="@number_of_drawers" />
+            </p>
+            <p>
+                <label for="surfaceMaterial">Surface Material:</label>
+                @Html.DropDownList("surfaceMaterial", surfaceMaterialItems)
+            </p>
+            <p>
+                <label for="customer_name">Customer Name: </label>
+                <input type="text" name="customer_name" value=@customer_name />
+            </p>
+            <p>
+                <label for="rush_days">Rush Order: </label>
+                @Html.DropDownList("rush_days", rushShippingItems)
+            </p>
+            <p>
+                <label for="date">Date: </label>
+                <input type="text" name="date" value="@Date" />
+            </p>
+            <input type="submit" name="checkQuoteButton" value="Review and Submit" />
+        </form>
+    </fieldset>
 </body>
 </html>

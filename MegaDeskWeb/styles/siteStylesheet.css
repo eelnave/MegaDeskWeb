@@ -1,13 +1,36 @@
-﻿h1{
+﻿h1 {
     text-align: center;
 }
 
-legend{
+legend {
     font-weight: bold;
     font-size: 28px;
 }
 
-fieldset{
+fieldset {
     width: 50%;
     margin: auto;
+}
+
+body {
+    margin: 4px;
+    border-collapse: collapse;
+    width: 600px;
+    margin: auto;
+}
+
+.grid th, .grid td {
+    border: 1px solid #C0C0C0;
+    padding: 5px;
+}
+
+.head {
+    background-color: #E8E8E8;
+    font-weight: bold;
+    color: #FFF;
+}
+
+.alt {
+    background-color: #E8E8E8;
+    color: #000;
 }

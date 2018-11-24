@@ -1,17 +1,33 @@
 ﻿@{
     Layout = "~/Shared/_Layout.cshtml";
 
-    var db = WebMatrix.Data.Database.Open("MegaDesk");
-    var selectCommand = "SELECT * FROM DeskQuotes dq JOIN Desk d ON dq.desk_id = d.desk_id";
-    var searchTerm = "";
-
-    if (!Request.QueryString["searchMaterial"].IsEmpty())
+        var db = WebMatrix.Data.Database.Open("MegaDesk");
+        var selectCommand = "SELECT * " +
+                        "    FROM DeskQuotes dq " +
+                        "    JOIN Desk d " +
+                        "    ON dq.desk_id = d.desk_id " +
+                        "    JOIN Material m " +
+                        "    ON m.material_id = d.material_id " +
+                        "    JOIN Rush_Prices rp" +
+                        "    ON rp.price_id = dq.rush_id";
+        var searchTerm = "";
+        var resultData = db.Query(selectCommand);
+    
+    if (!Request.QueryString["nameSearch"].IsEmpty())
     {
-        selectCommand = "SELECT * FROM DeskQuotes dq JOIN Desk d ON dq.desk_id = d.desk_id WHERE material = @0";
-        searchTerm = Request.QueryString["searchMaterial"];
+        selectCommand = "SELECT * " +
+                    "    FROM DeskQuotes dq " +
+                    "    JOIN Desk d " +
+                    "    ON dq.desk_id = d.desk_id " +
+                    "    JOIN Material m " +
+                    "    ON m.material_id = d.material_id " +
+                    "    JOIN Rush_Prices rp" +
+                    "    ON rp.price_id = dq.rush_id" +
+                    "    WHERE dq.customer_name = @0";
+        searchTerm = Request.QueryString["nameSearch"];
+        resultData = db.Query(selectCommand, searchTerm);
     }
 
-    var resultData = db.Query(selectCommand);
     var grid = new WebGrid(source: resultData, defaultSort: "quote_date", rowsPerPage: 10);
 }
 
@@ -20,16 +36,22 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width" />
-    <title></title>
 </head>
 <body>
+    <div>
+        <form method="get">
+            <label for="nameSearch">Search by Name: </label>
+            <input type="text" name="nameSearch" value="@Request.QueryString["nameSearch"]" />
+            <input type="submit" value="Search Name" />
+        </form>
+    </div>
     <div>
         @grid.GetHtml(
     tableStyle: "grid",
     headerStyle: "gridHead",
     alternatingRowStyle: "alt",
     columns: grid.Columns(
-            grid.Column(format: @<a href="~/EditQuote?quoteId=@item.quote_id&deskId=@item.desk_id">Edit</a>),
+            grid.Column(format: @<a href="~/EditQuote?quoteId=@item.quote_id&deskId=@item.desk_id&surfaceMaterial=@item.material_id&rush_order=@item.price_id">Edit</a>),
                  grid.Column(
                      columnName: "customer_name",
                      header: "Customer Name"
@@ -47,13 +69,23 @@
                      header: "Number of Drawers"
                      ),
                  grid.Column(
+                     columnName: "material_type",
+                     header: "Material"
+                     ),
+                 grid.Column(
+                     columnName: "rush_days",
+                     header: "Order Time"
+                     ),
+                 grid.Column(
                      columnName: "quote_date",
                      header: "Quote Date"
                      ),
                  grid.Column(
                      columnName: "quote_amount",
                      header: "Quote"
-                     )))
+                     ),
+                 grid.Column(format: @<a href="~/DeleteQuote?quoteId=@item.quote_id&deskId=@item.desk_id&surfaceMaterial=@item.material_id&rush_order=@item.price_id">Delete</a>)))
     </div>
+    <a href="~/AddQuote.cshtml">Add New Quote</a>
 </body>
 </html>
